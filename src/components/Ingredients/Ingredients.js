@@ -1,4 +1,4 @@
-import React, { useReducer, useState, useCallback, useEffect } from "react";
+import React, { useReducer, useCallback, useEffect } from "react";
 import IngredientForm from "./IngredientForm";
 import IngredientsList from "./IngredientList";
 import Search from "./Search";
@@ -9,27 +9,45 @@ const ingredientsReducer = (currentIngredients, action) => {
     case "SET":
       return action.ingredients;
     case "ADD":
-      return currentIngredients, action.ingredient;
+      return [...currentIngredients, action.ingredient];
     case "DELETE":
       return currentIngredients.filter((ing) => ing.id !== action.id);
     default:
-      throw new error("should not get there!");
+      throw new Error("should not get there!");
+  }
+};
+
+const httpReducer = (curHttpState, action) => {
+  switch (action.type) {
+    case "SEND":
+      return { loading: true, error: null };
+    case "RESPONSE":
+      return { ...curHttpState, loading: false };
+    case "ERROR":
+      return { loading: false, error: action.errorMessage };
+      case "CLEAR":
+        return {...curHttpState, error: null};
+    default:
+      throw new Error("Should not  be reached");
   }
 };
 const Ingredients = () => {
   const [userIngredients, dispatch] = useReducer(ingredientsReducer, []);
+  const [httpState, dispatchHttp] = useReducer(httpReducer, {
+    loading: false,
+    error: null,
+  });
   // const [userIngredients, setUserIngredients] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessgae, setErrorMessgae] = useState();
+  // const [isLoading, setIsLoading] = useState(false);
+  // const [errorMessgae, setErrorMessgae] = useState();
 
   useEffect(() => {
     console.log("Rendering ingredients", userIngredients);
   }, [userIngredients]);
 
   const addIngredientsHandler = (ingredient) => {
-    console.log(isLoading, " before isLoading");
-    setIsLoading(true);
-    console.log(isLoading, "isLoading");
+    dispatchHttp({ type: "SEND" });
+    // setIsLoading(true);
     fetch(
       "https://react-hooks-updates-a4d66-default-rtdb.firebaseio.com/ingredients.json",
       {
@@ -39,22 +57,29 @@ const Ingredients = () => {
       }
     )
       .then((response) => {
-        setIsLoading(false);
+        // setIsLoading(false);
+        dispatchHttp({ type: "RESPONSE" });
         response.json();
       })
       .then((responseData) => {
-        setUserIngredients((prevIngredients) => [
-          ...prevIngredients,
-          { id: responseData, ...ingredient },
-        ]);
+        // setUserIngredients((prevIngredients) => [
+        //   ...prevIngredients,
+        //   { id: responseData, ...ingredient },
+        // ]);
+        dispatch({
+          type: "ADD",
+          ingredient: { id: responseData, ...ingredient },
+        });
       })
       .catch((err) => {
-        setErrorMessgae("something went to wrong");
+        // setErrorMessgae("something went to wrong");
+        dispatchHttp({ type: "ERROR", errorMessage: 'Something went wrong in add ingrendits' });
       });
   };
 
   const removeHandler = (ingredientId) => {
-    setIsLoading(true);
+    // setIsLoading(true);
+    dispatchHttp({ type: "SEND" });
     fetch(
       `https://react-hooks-updates-a4d66-default-rtdb.firebaseio.com/ingredients/${ingredientId}.json`,
       {
@@ -62,32 +87,35 @@ const Ingredients = () => {
       }
     )
       .then((response) => {
-        setIsLoading(false);
-        setUserIngredients((prevIngredients) =>
-          prevIngredients.filter((item) => item.id !== ingredientId)
-        );
+        // setIsLoading(false);
+        // setUserIngredients((prevIngredients) =>
+        //   prevIngredients.filter((item) => item.id !== ingredientId)
+        // );
+        dispatchHttp({ type: "RESPONSE" });
+        dispatch({ type: "DELETE", id: ingredientId });
       })
       .catch((err) => {
-        setErrorMessgae("something went to wrong");
+        dispatchHttp({type: 'ERROR', errorMessage: 'Something went wrog in remove handler'})
+      //   setErrorMessgae("something went to wrong");
       });
   };
 
   const filterIngredientsHandler = useCallback((filterIngredients) => {
-    setUserIngredients(filterIngredients);
+    // setUserIngredients(filterIngredients);
+    dispatch({ type: "SET", ingredients: filterIngredients });
   }, []);
 
   const onCloseError = () => {
-    setErrorMessgae(null);
-    setIsLoading(false);
+    dispatchHttp({ type: "CLEAR" });
   };
   return (
     <div className="App">
-      {errorMessgae && (
-        <ErrorModal onClose={onCloseError}> {errorMessgae}</ErrorModal>
+      {httpState.error && (
+        <ErrorModal onClose={onCloseError}> {httpState.error}</ErrorModal>
       )}
       <IngredientForm
         onAddIngredient={addIngredientsHandler}
-        loading={isLoading}
+        loading={httpState.loading}
       />
       <section>
         <Search onLoadIngredients={filterIngredientsHandler} />
