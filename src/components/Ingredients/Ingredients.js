@@ -1,4 +1,4 @@
-import React, { useReducer, useCallback, useEffect } from "react";
+import React, { useReducer, useCallback, useEffect, useMemo } from "react";
 import IngredientForm from "./IngredientForm";
 import IngredientsList from "./IngredientList";
 import Search from "./Search";
@@ -45,7 +45,7 @@ const Ingredients = () => {
     console.log("Rendering ingredients", userIngredients);
   }, [userIngredients]);
 
-  const addIngredientsHandler = (ingredient) => {
+  const addIngredientsHandler = useCallback((ingredient) => {
     dispatchHttp({ type: "SEND" });
     // setIsLoading(true);
     fetch(
@@ -75,9 +75,9 @@ const Ingredients = () => {
         // setErrorMessgae("something went to wrong");
         dispatchHttp({ type: "ERROR", errorMessage: 'Something went wrong in add ingrendits' });
       });
-  };
+  },[]);
 
-  const removeHandler = (ingredientId) => {
+  const removeHandler = useCallback((ingredientId) => {
     // setIsLoading(true);
     dispatchHttp({ type: "SEND" });
     fetch(
@@ -98,7 +98,7 @@ const Ingredients = () => {
         dispatchHttp({type: 'ERROR', errorMessage: 'Something went wrog in remove handler'})
       //   setErrorMessgae("something went to wrong");
       });
-  };
+  }, []);
 
   const filterIngredientsHandler = useCallback((filterIngredients) => {
     // setUserIngredients(filterIngredients);
@@ -108,6 +108,16 @@ const Ingredients = () => {
   const onCloseError = () => {
     dispatchHttp({ type: "CLEAR" });
   };
+
+  const ingredientList = useMemo(() => {
+    return (
+    <IngredientsList
+    ingredients={userIngredients}
+    onRemoveItem={removeHandler}
+  />
+    )
+  }, [userIngredients, removeHandler])
+
   return (
     <div className="App">
       {httpState.error && (
@@ -119,10 +129,7 @@ const Ingredients = () => {
       />
       <section>
         <Search onLoadIngredients={filterIngredientsHandler} />
-        <IngredientsList
-          ingredients={userIngredients}
-          onRemoveItem={removeHandler}
-        />
+       {ingredientList}
       </section>
     </div>
   );

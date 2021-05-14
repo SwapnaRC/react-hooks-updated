@@ -6,6 +6,8 @@ import "./IngredientForm.css";
 const IngredientForm = React.memo((props) => {
   const [addtitle, setTitle] = useState("");
   const [addamount, setAmount] = useState("");
+  console.log('ingredients are loading');
+  
   const submitHandler = (event) => {
     event.preventDefault();
     props.onAddIngredient({ title: addtitle, amount: addamount });
